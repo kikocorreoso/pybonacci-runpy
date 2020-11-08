@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+
+<head></head>
+
+<body>
+  <style>
+  .CodeMirror {
+    font-family: Arial, monospace;
+    font-size: 16px;
+  }
+  * {
+    box-sizing: border-box;
+  }
+  .ecolumn {
+    float: left;
+    width: 50%;
+    padding: 10px;
+    height: 100%; /* Should be removed. Only for demonstration */
+  }
+  /* Clear floats after the columns */
+  .erow:after {
+    content: "";
+    display: table;
+    clear: both;
+  }
+  @media screen and (max-width: 600px) {
+    .ecolumn {
+      width: 100%;
+    }
+  }
+  </style>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5.58.2/lib/codemirror.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5.58.2/theme/cobalt.css">
+  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.58.2/lib/codemirror.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.58.2/mode/python/python.js"></script>
+  <script type="text/javascript">
+    window.languagePluginUrl = 'https://cdn.jsdelivr.net/pyodide/v0.15.0/full/';
+  </script>
+  <script src="https://cdn.jsdelivr.net/pyodide/v0.15.0/full/pyodide.js"></script>
+
+  <!--HTML LAYOUT-->
+  <p>You can execute any Python code. Just enter something in the box below and click the button.</p>
+  <div class="erow">
+    <div id="left" class="ecolumn">
+      <button onclick='evaluatePython()'>Run</button> (or push Shift+Enter to execute the code)
+      <br>
+      <br>
+      <textarea id='editorarea'></textarea>
+      <textarea id='output' style='width: 100%;' rows='6' disabled></textarea>
+    </div>
+    <div id="right" class="ecolumn">
+      <div id="plotarea"></div>
+    </div>
+  </div> 
+  
+  <script>
+    const editorarea = document.getElementById("editorarea");
+    const output = document.getElementById("output");
+
+    // Codemirror instance
+    var editor = CodeMirror.fromTextArea(
+        editorarea,
+        {
+           value: '# Start writing python code',
+           lineNumbers: true,
+           matchBrackets: true,
+           theme: 'cobalt',
+        }
+    );
+    editor.setSize('100%', 300);
+
+
+    // function to add output to their html textarea
+    function addToOutput(s) {
+      output.value += s + '\n';
+    }
+
+
+    // function to add a shortcut to easily run the code in the editor
+    // shortcut: Shift + Enter
+    function run_shortcut(e) {
+      if (e.shiftKey && e.keyCode == 13) {
+        e.preventDefault();
+        evaluatePython();
+      }
+    };
+    document.addEventListener('keydown', run_shortcut, false);
+    
+
+    // Initialization of PyOdide
+    output.value = 'Initializing...\n';
+    languagePluginLoader.then(() => {
+    // Injection of some names like a `print` that will print in the output
+    // textarea. By default, PyOdide `print` prints in the brower js console... 
+    // The default PyOdide `print is renamed to `_print`
+    // Injection of a context manager to plot figures on the right of the 
+    // page. It wraps the figure and helps to plot in the correct area using
+    // and img html tag.
+        var prev = "import sys\n";
+        prev += "import io\n";
+        prev += "import base64\n";
+        prev += "import matplotlib.pyplot as plt\n";
+        prev += "import js\n";
+        prev += "\n";
+        prev += "_print = print\n";
+        prev += "def print(msg):\n";
+        prev += "    output = js.document.getElementById('output')\n";
+        prev += "    output.value += str(msg) + '\\n'";
+        prev += "\n";
+        prev += "class Plot:\n";
+        prev += "    def __init__(self, nrows=1, ncols=1):\n";
+        prev += "        self.nrows = nrows\n";
+        prev += "        self.ncols = ncols\n";
+        prev += "    def __enter__(self):\n";
+        prev += "        fig, axes = plt.subplots(ncols=self. ncols, nrows=self.nrows)\n";
+        prev += "        self.fig = fig\n";
+        prev += "        self.axes = axes\n";
+        prev += "        return self.fig, self.axes\n";
+        prev += "    def __exit__(self, exc_type, exc_value, exc_traceback):\n";
+        prev += "        img =  io.StringIO()\n";
+        prev += "        plt.savefig(img, format='svg')\n";
+        prev += "        img.seek(0)\n";
+        prev += "        imgdata = img.read()\n";
+        prev += "        plotarea = js.document.getElementById('plotarea')\n";
+        prev += "        imgtag = js.document.createElement('img')\n";
+        prev += "        imgtag.setAttribute(\n";
+        prev += "            'src','data:image/svg+xml;base64,' + \n";
+        prev += "            str(base64.b64encode(imgdata.encode()),\n";
+        prev += "            'ascii')\n";
+        prev += "        )\n";
+        prev += "        plotarea.appendChild(imgtag)";        
+        pyodide.runPythonAsync(prev)
+          .then(output => addToOutput(output))
+          .catch((err) => { addToOutput(err) });
+        output.value += 'Ready!\n'; 
+    });
+    
+
+    // Function used to evaluate the code in the editor
+    function evaluatePython() {
+      output.value = '';
+      document.getElementById("plotarea").innerHTML = "";
+      pyodide.runPythonAsync(editor.getValue())
+        .then(output => addToOutput(output))
+        .catch((err) => { addToOutput(err) });
+    }
+    
+    
+  </script>
+</body>
+
+</html>
