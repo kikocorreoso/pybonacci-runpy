@@ -34,6 +34,8 @@ with Plot(1, 2) as (fig, axs):
 
 [https://pybonacci.org/runpy/](https://pybonacci.org/runpy/)
 
+[githack](https://raw.githack.com/kikocorreoso/pybonacci-runpy/main/src/index.html)
+
 ## Screenshots
 
 ![](./media/pybonacci-runpy.png)
