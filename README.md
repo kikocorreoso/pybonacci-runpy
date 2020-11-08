@@ -33,3 +33,7 @@ with Plot(1, 2) as (fig, axs):
 ## Test it Here
 
 [https://pybonacci.org/runpy/](https://pybonacci.org/runpy/)
+
+## Screenshots
+
+![](./media/pybonacci-runpy.png)
